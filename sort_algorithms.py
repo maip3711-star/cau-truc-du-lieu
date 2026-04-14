@@ -2,8 +2,6 @@
 """
 sort_algorithms.py
 Các thuật toán sắp xếp thuần túy (Insertion, Quick, Merge, Heap) và hàm kiểm tra.
-Viết bởi Trần Thị Thu Hường.
-Đã điều chỉnh để phù hợp với quy tắc chung của nhóm.
 """
 
 # =====================================
