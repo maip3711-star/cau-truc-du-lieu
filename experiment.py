@@ -1,40 +1,57 @@
-import time
+import pandas as pd
 import random
+import time
 import csv
 import matplotlib.pyplot as plt
 
-# ======================
-# Các thuật toán mẫu
-# ======================
+# ================= DATASET =================
 
-def bubble_sort(arr):
-    a = arr.copy()
-    n = len(a)
-    for i in range(n):
-        for j in range(0, n - i - 1):
-            if a[j] > a[j + 1]:
-                a[j], a[j + 1] = a[j + 1], a[j]
-    return a
+def get_datasets(n=20000):
+    df = pd.read_csv("kc_house_data.csv")
+    price = df["price"].astype(int).tolist()[:n]
 
-def insertion_sort(arr):
-    a = arr.copy()
-    for i in range(1, len(a)):
-        key = a[i]
+    A = price.copy()
+    random.shuffle(A)
+
+    B = sorted(price)
+
+    C = B[::-1]
+
+    D = B.copy()
+    for _ in range(len(D) // 20):
+        i = random.randint(0, len(D)-1)
+        j = random.randint(0, len(D)-1)
+        D[i], D[j] = D[j], D[i]
+
+    E = [x % 1000 for x in price]
+
+    return {
+        "A": A,
+        "B": B,
+        "C": C,
+        "D": D,
+        "E": E
+    }
+
+# ================= SORT =================
+
+def insertion_sort(a):
+    arr = a.copy()
+    for i in range(1, len(arr)):
+        key = arr[i]
         j = i - 1
-        while j >= 0 and a[j] > key:
-            a[j + 1] = a[j]
+        while j >= 0 and arr[j] > key:
+            arr[j + 1] = arr[j]
             j -= 1
-        a[j + 1] = key
-    return a
+        arr[j + 1] = key
+    return arr
 
-def merge_sort(arr):
-    if len(arr) <= 1:
-        return arr
-
-    mid = len(arr) // 2
-    left = merge_sort(arr[:mid])
-    right = merge_sort(arr[mid:])
-
+def merge_sort(a):
+    if len(a) <= 1:
+        return a
+    mid = len(a)//2
+    left = merge_sort(a[:mid])
+    right = merge_sort(a[mid:])
     return merge(left, right)
 
 def merge(left, right):
@@ -42,114 +59,98 @@ def merge(left, right):
     i = j = 0
     while i < len(left) and j < len(right):
         if left[i] < right[j]:
-            result.append(left[i])
-            i += 1
+            result.append(left[i]); i += 1
         else:
-            result.append(right[j])
-            j += 1
-    result.extend(left[i:])
-    result.extend(right[j:])
+            result.append(right[j]); j += 1
+    result += left[i:]
+    result += right[j:]
     return result
 
-def quick_sort(arr):
-    if len(arr) <= 1:
-        return arr
-    pivot = arr[len(arr)//2]
-    left = [x for x in arr if x < pivot]
-    mid = [x for x in arr if x == pivot]
-    right = [x for x in arr if x > pivot]
+def quick_sort(a):
+    if len(a) <= 1:
+        return a
+    pivot = a[len(a)//2]
+    left = [x for x in a if x < pivot]
+    mid = [x for x in a if x == pivot]
+    right = [x for x in a if x > pivot]
     return quick_sort(left) + mid + quick_sort(right)
 
-# ======================
-# Tạo dữ liệu test
-# ======================
+# ================= ADAPTIVE =================
 
-def generate_datasets():
-    sizes = [100, 500, 1000, 2000, 5000]
-    datasets = []
+def is_nearly_sorted(arr):
+    disorder = sum(1 for i in range(len(arr)-1) if arr[i] > arr[i+1])
+    return disorder < len(arr) * 0.1
 
-    for size in sizes:
-        data = [random.randint(0, 10000) for _ in range(size)]
-        datasets.append((size, data))
+def adaptive_sort(a):
+    if is_nearly_sorted(a):
+        return insertion_sort(a)
+    else:
+        return quick_sort(a)
 
-    return datasets
+# ================= MEASURE =================
 
-# ======================
-# Đo thời gian
-# ======================
-
-def measure_time(func, data, repeats=5):
-    total_time = 0
+def measure_time(func, data, repeats=10):
+    total = 0
     for _ in range(repeats):
         arr = data.copy()
         start = time.perf_counter()
         func(arr)
         end = time.perf_counter()
-        total_time += (end - start)
-    avg_time = (total_time / repeats) * 1000  # ms
-    return avg_time
+        total += (end - start)
+    return (total / repeats) * 1000  # ms
 
-# ======================
-# Chạy thực nghiệm
-# ======================
+# ================= EXPERIMENT =================
 
 def run_experiment():
+    datasets = get_datasets()
+
     algorithms = {
-        "Bubble": bubble_sort,
         "Insertion": insertion_sort,
         "Merge": merge_sort,
-        "Quick": quick_sort
+        "Quick": quick_sort,
+        "Adaptive": adaptive_sort
     }
 
-    datasets = generate_datasets()
     results = []
 
-    for size, data in datasets:
-        for name, func in algorithms.items():
-            print(f"Running {name} with n={size}...")
-            avg_time = measure_time(func, data, repeats=5)
-            results.append([name, size, avg_time])
+    for dname, data in datasets.items():
+        for aname, func in algorithms.items():
+            print(f"Running {aname} on dataset {dname}...")
+            t = measure_time(func, data)
+            results.append([dname, aname, t])
 
     return results
 
-# ======================
-# Ghi CSV
-# ======================
+# ================= SAVE CSV =================
 
-def save_to_csv(results, filename="results.csv"):
-    with open(filename, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Algorithm", "Input Size", "Time (ms)"])
+def save_csv(results):
+    with open("results.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Dataset", "Algorithm", "Time (ms)"])
         writer.writerows(results)
 
-# ======================
-# Vẽ biểu đồ
-# ======================
+# ================= PLOT =================
 
-def plot_results(results):
-    plt.figure()  # tạo figure mới
-
-    algorithms = list(set(r[0] for r in results))
+def plot(results):
+    datasets = sorted(set(r[0] for r in results))
+    algorithms = sorted(set(r[1] for r in results))
 
     for algo in algorithms:
-        x = [r[1] for r in results if r[0] == algo]
-        y = [r[2] for r in results if r[0] == algo]
-        plt.plot(x, y, marker='o', label=algo)
+        y = [next(r[2] for r in results if r[0]==d and r[1]==algo) for d in datasets]
+        plt.plot(datasets, y, marker='o', label=algo)
 
-    plt.xlabel("Input Size (n)")
+    plt.xlabel("Dataset (A-E)")
     plt.ylabel("Time (ms)")
-    plt.title("So sánh thời gian các thuật toán")
+    plt.title("Sorting Algorithm Comparison")
     plt.legend()
     plt.grid(True)
 
-    plt.savefig("chart.png")  # lưu ảnh trước
-    plt.show()               # hiển thị
+    plt.savefig("chart.png")
+    plt.show()
 
-# ======================
-# Main
-# ======================
+# ================= MAIN =================
 
 if __name__ == "__main__":
     results = run_experiment()
-    save_to_csv(results)
-    plot_results(results)
+    save_csv(results)
+    plot(results)
