@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 data_analyzer.py
-               - Đếm nghịch thế, tính tỷ lệ nghịch thế
+Phân tích đặc tính dữ liệu:
+               - Tính tỷ lệ nghịch thế (sampling tuần tự O(sample_size))
                - Phát hiện xu hướng sắp xếp của mảng
 """
 
 # ============================================================
-# 1. ĐẾM NGHỊCH THẾ & TÍNH TỶ LỆ
+# 1. ĐẾM NGHỊCH THẾ CHÍNH XÁC (dùng cho báo cáo)
 # ============================================================
 
 def count_inversions(arr):
     """
     Đếm số cặp nghịch thế (i < j nhưng arr[i] > arr[j])
     bằng Merge Sort cải tiến — O(n log n).
-
-    Trả về: số cặp nghịch thế (int)
+    Dùng để tính toán chính xác cho báo cáo, KHÔNG dùng trong adaptive_sort.
     """
     if len(arr) <= 1:
         return 0
@@ -23,90 +23,76 @@ def count_inversions(arr):
 
 
 def _merge_count(arr):
-    """Hàm đệ quy: sắp xếp + đếm nghịch thế đồng thời."""
     if len(arr) <= 1:
         return arr, 0
-
-    mid   = len(arr) // 2
-    left,  inv_left  = _merge_count(arr[:mid])
-    right, inv_right = _merge_count(arr[mid:])
-
-    merged = []
-    inv    = inv_left + inv_right
-    i = j  = 0
-
+    mid            = len(arr) // 2
+    left,  inv_l   = _merge_count(arr[:mid])
+    right, inv_r   = _merge_count(arr[mid:])
+    merged, inv    = [], inv_l + inv_r
+    i = j          = 0
     while i < len(left) and j < len(right):
         if left[i] <= right[j]:
-            merged.append(left[i])
-            i += 1
+            merged.append(left[i]); i += 1
         else:
-            # left[i] > right[j] → tất cả phần tử còn lại bên trái
-            # đều tạo nghịch thế với right[j]
             inv += len(left) - i
-            merged.append(right[j])
-            j += 1
-
+            merged.append(right[j]); j += 1
     merged.extend(left[i:])
     merged.extend(right[j:])
     return merged, inv
 
 
-def inversion_ratio(arr, sample_size=500):
-    """
-    Ước lượng tỷ lệ nghịch thế (%) bằng phương pháp sampling — O(sample_size).
-
-    Thay vì duyệt toàn bộ O(n log n), chỉ kiểm tra ngẫu nhiên
-    sample_size cặp liền kề → đủ chính xác để quyết định thuật toán,
-    đồng thời không làm chậm adaptive_sort.
-
-      - ~0%   → mảng đã sắp xếp tăng dần (Insertion Sort)
-      - ~100% → mảng đảo ngược hoàn toàn (Merge Sort)
-      - ~50%  → mảng ngẫu nhiên           (Quick Sort)
-
-    Tham số:
-      sample_size : số cặp liền kề kiểm tra (mặc định 500)
-
-    Trả về: float trong khoảng [0.0, 100.0]
-    """
-    import random
-    n = len(arr)
-    if n <= 1:
-        return 0.0
-
-    # Lấy mẫu ngẫu nhiên các vị trí liền kề
-    indices = random.sample(range(n - 1), min(sample_size, n - 1))
-    inv     = sum(1 for i in indices if arr[i] > arr[i + 1])
-    return (inv / len(indices)) * 100.0
-
-
 # ============================================================
-# 2. PHÁT HIỆN XU HƯỚNG
+# 2. PHÂN TÍCH NHANH — dùng trong adaptive_sort
 # ============================================================
 
-def detect_trend(arr, sample_size=500):
+def _analyze(arr, sample_size=1000):
     """
-    Phát hiện xu hướng sắp xếp của mảng bằng sampling — O(sample_size).
-
-    Kiểm tra ngẫu nhiên sample_size cặp liền kề:
-      - Nếu > 95% cặp tăng  → 'increasing'
-      - Nếu > 95% cặp giảm  → 'decreasing'
-      - Còn lại              → 'random'
-
-    Trả về: str — 'increasing' | 'decreasing' | 'random'
+    Duyệt tuần tự sample_size cặp liền kề, trả về (inv_ratio, inc_ratio).
+    Dùng chung 1 lần duyệt cho cả inversion_ratio và detect_trend
+    → nhất quán, không bị lệch do random seed khác nhau.
     """
-    import random
-    n = len(arr)
+    n    = len(arr)
     if n <= 1:
-        return 'random'
+        return 0.0, 1.0
 
-    indices   = random.sample(range(n - 1), min(sample_size, n - 1))
+    step      = max(1, (n - 1) // min(sample_size, n - 1))
+    indices   = range(0, n - 1, step)
+    total     = len(range(0, n - 1, step))
     inc_count = sum(1 for i in indices if arr[i] <= arr[i + 1])
-    dec_count = len(indices) - inc_count
+    inv_count = total - inc_count
 
-    inc_ratio = inc_count / len(indices)
-    dec_ratio = dec_count / len(indices)
+    return (inv_count / total) * 100.0, inc_count / total
 
-    if inc_ratio >= 0.95:
+
+def inversion_ratio(arr, sample_size=1000):
+    """
+    Ước lượng tỷ lệ nghịch thế (%) bằng systematic sampling — O(sample_size).
+
+      - ~0%   → mảng đã sắp xếp (Insertion Sort)
+      - ~100% → mảng đảo ngược  (Merge Sort)
+      - ~50%  → mảng ngẫu nhiên (Quick Sort)
+
+    Trả về: float [0.0, 100.0]
+    """
+    inv_ratio, _ = _analyze(arr, sample_size)
+    return inv_ratio
+
+
+def detect_trend(arr, sample_size=1000):
+    """
+    Phát hiện xu hướng sắp xếp bằng systematic sampling — O(sample_size).
+
+    Ngưỡng:
+      inc_ratio >= 90% → 'increasing'  (bắt cả tập B và D 5% đảo)
+      dec_ratio >= 95% → 'decreasing'  (chỉ bắt tập C đảo ngược)
+      còn lại          → 'random'
+
+    Trả về: 'increasing' | 'decreasing' | 'random'
+    """
+    _, inc_ratio = _analyze(arr, sample_size)
+    dec_ratio    = 1.0 - inc_ratio
+
+    if inc_ratio >= 0.90:
         return 'increasing'
     elif dec_ratio >= 0.95:
         return 'decreasing'
@@ -119,18 +105,41 @@ def detect_trend(arr, sample_size=500):
 # ============================================================
 
 if __name__ == "__main__":
-    test_cases = {
-        "Tăng dần hoàn toàn" : [1, 2, 3, 4, 5, 6, 7, 8],
-        "Giảm dần hoàn toàn" : [8, 7, 6, 5, 4, 3, 2, 1],
-        "Ngẫu nhiên"         : [3, 1, 4, 1, 5, 9, 2, 6],
-        "Gần đúng (1 lệch)"  : [1, 2, 4, 3, 5, 6, 7, 8],
+    import random
+    random.seed(42)
+
+    n    = 20000
+    A    = [random.randint(100000, 2000000) for _ in range(n)]
+    B    = sorted(A)
+    C    = B[::-1]
+    D    = B.copy()
+    idx  = random.sample(range(n), 2000)
+    for k in range(0, len(idx)-1, 2):
+        D[idx[k]], D[idx[k+1]] = D[idx[k+1]], D[idx[k]]
+    E    = A.copy()
+    idx  = random.sample(range(n), 12000)
+    for k in range(0, len(idx)-1, 2):
+        E[idx[k]], E[idx[k+1]] = E[idx[k+1]], E[idx[k]]
+
+    cases = {
+        "A – Ngẫu nhiên  ": A,
+        "B – Tăng dần    ": B,
+        "C – Giảm dần    ": C,
+        "D – 5%  đảo     ": D,
+        "E – 30% đảo     ": E,
     }
 
-    print("=" * 60)
-    print(f"{'Trường hợp':<25} {'inv_ratio':>12} {'detect_trend':>15}")
-    print("=" * 60)
-    for name, data in test_cases.items():
+    print("=" * 65)
+    print(f"{'Tập':<22} {'inv_ratio':>12}  {'detect_trend':>14}  {'Chọn'}")
+    print("=" * 65)
+    for name, data in cases.items():
         ratio = inversion_ratio(data)
         trend = detect_trend(data)
-        print(f"{name:<25} {ratio:>11.2f}%  {trend:>15}")
-    print("=" * 60)
+        if ratio < 20.0 or trend == 'increasing':
+            chosen = "Insertion Sort"
+        elif trend == 'decreasing':
+            chosen = "Merge Sort"
+        else:
+            chosen = "Quick Sort"
+        print(f"{name:<22} {ratio:>11.1f}%  {trend:>14}  {chosen}")
+    print("=" * 65)
