@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 data_analyzer.py
+               - Đếm nghịch thế, tính tỷ lệ nghịch thế
+               - Phát hiện xu hướng sắp xếp của mảng
 """
 
 # ============================================================
@@ -49,50 +51,60 @@ def _merge_count(arr):
     return merged, inv
 
 
-def inversion_ratio(arr):
+def inversion_ratio(arr, sample_size=500):
     """
-    Tính tỷ lệ nghịch thế (%) so với tổng số cặp có thể có.
+    Ước lượng tỷ lệ nghịch thế (%) bằng phương pháp sampling — O(sample_size).
 
-    Công thức: inv_ratio = count_inversions / (n*(n-1)/2) * 100
-      - 0%   → mảng đã sắp xếp tăng dần hoàn toàn
-      - 100% → mảng đảo ngược hoàn toàn
-      - ~50% → mảng ngẫu nhiên
+    Thay vì duyệt toàn bộ O(n log n), chỉ kiểm tra ngẫu nhiên
+    sample_size cặp liền kề → đủ chính xác để quyết định thuật toán,
+    đồng thời không làm chậm adaptive_sort.
+
+      - ~0%   → mảng đã sắp xếp tăng dần (Insertion Sort)
+      - ~100% → mảng đảo ngược hoàn toàn (Merge Sort)
+      - ~50%  → mảng ngẫu nhiên           (Quick Sort)
+
+    Tham số:
+      sample_size : số cặp liền kề kiểm tra (mặc định 500)
 
     Trả về: float trong khoảng [0.0, 100.0]
     """
+    import random
     n = len(arr)
     if n <= 1:
         return 0.0
-    max_inv = n * (n - 1) / 2
-    return (count_inversions(arr) / max_inv) * 100.0
+
+    # Lấy mẫu ngẫu nhiên các vị trí liền kề
+    indices = random.sample(range(n - 1), min(sample_size, n - 1))
+    inv     = sum(1 for i in indices if arr[i] > arr[i + 1])
+    return (inv / len(indices)) * 100.0
 
 
 # ============================================================
 # 2. PHÁT HIỆN XU HƯỚNG
 # ============================================================
 
-def detect_trend(arr):
+def detect_trend(arr, sample_size=500):
     """
-    Phát hiện xu hướng sắp xếp của mảng.
+    Phát hiện xu hướng sắp xếp của mảng bằng sampling — O(sample_size).
 
-    Đếm số cặp liền kề tăng (arr[i] <= arr[i+1])
-    và số cặp liền kề giảm (arr[i] > arr[i+1]):
+    Kiểm tra ngẫu nhiên sample_size cặp liền kề:
       - Nếu > 95% cặp tăng  → 'increasing'
       - Nếu > 95% cặp giảm  → 'decreasing'
       - Còn lại              → 'random'
 
     Trả về: str — 'increasing' | 'decreasing' | 'random'
     """
+    import random
     n = len(arr)
     if n <= 1:
         return 'random'
 
-    total     = n - 1
-    inc_count = sum(1 for i in range(total) if arr[i] <= arr[i + 1])
-    dec_count = total - inc_count
+    indices   = random.sample(range(n - 1), min(sample_size, n - 1))
+    inc_count = sum(1 for i in indices if arr[i] <= arr[i + 1])
+    dec_count = len(indices) - inc_count
 
-    inc_ratio = inc_count / total
-    dec_ratio = dec_count / total
+    inc_ratio = inc_count / len(indices)
+    dec_ratio = dec_count / len(indices)
 
     if inc_ratio >= 0.95:
         return 'increasing'
