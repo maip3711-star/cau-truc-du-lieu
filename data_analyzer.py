@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 data_analyzer.py
-Phân tích đặc tính dữ liệu:
                - Tính tỷ lệ nghịch thế (sampling tuần tự O(sample_size))
                - Phát hiện xu hướng sắp xếp của mảng
 """
