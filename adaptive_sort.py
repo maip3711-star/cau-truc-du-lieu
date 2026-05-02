@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 adaptive_sort.py
-Xây dựng bộ điều phối thích nghi adaptive_sort()
+ Xây dựng bộ điều phối thích nghi adaptive_sort()
              dựa vào tỷ lệ nghịch thế và xu hướng dữ liệu.
 """
 
 from sort_algorithms import insertion_sort, quick_sort, merge_sort, heap_sort
-from data_analyzer   import _analyze
+from data_analyzer   import inversion_ratio, detect_trend
 
 
 # ============================================================
@@ -17,15 +17,10 @@ def adaptive_sort(arr, verbose=False):
     """
     Sắp xếp mảng theo chiến lược thích nghi.
 
-    Chiến lược lựa chọn (1 lần duyệt sampling duy nhất):
+    Chiến lược lựa chọn:
       - trend == 'increasing' → Insertion Sort  (gần như đã sắp xếp, O(n))
       - trend == 'decreasing' → Merge Sort       (tránh worst-case Quick Sort)
       - trend == 'random'     → Quick Sort       (median-of-three, nhanh nhất tb)
-
-    Ngưỡng phát hiện trend:
-      inc_ratio >= 90% → increasing  (bắt cả Tập B lẫn Tập D 5% đảo)
-      dec_ratio >= 95% → decreasing  (chỉ bắt Tập C đảo ngược hoàn toàn)
-      còn lại          → random
 
     Trả về: list mới đã sắp xếp, KHÔNG sửa mảng gốc.
     """
@@ -33,17 +28,9 @@ def adaptive_sort(arr, verbose=False):
     if n <= 1:
         return arr.copy()
 
-    # ── Phân tích đặc tính (1 lần duyệt duy nhất) ───────────
-    inv_ratio, inc_ratio = _analyze(arr)
-    dec_ratio            = 1.0 - inc_ratio / 100 if inc_ratio > 1 else 1.0 - inc_ratio
-
-    # Xác định trend từ inc_ratio (0.0–1.0)
-    if inc_ratio >= 0.90:
-        trend = 'increasing'
-    elif (1.0 - inc_ratio) >= 0.95:
-        trend = 'decreasing'
-    else:
-        trend = 'random'
+    # ── Phân tích đặc tính ───────────────────────────────────
+    inv_ratio = inversion_ratio(arr)
+    trend     = detect_trend(arr)
 
     # ── Chọn và gọi thuật toán ───────────────────────────────
     if trend == 'increasing':
@@ -94,17 +81,14 @@ if __name__ == "__main__":
         "E – 30% đảo   ": E,
     }
 
-    print("=" * 70)
+    print("=" * 65)
     print("KIỂM THỬ adaptive_sort")
-    print("=" * 70)
+    print("=" * 65)
     all_pass = True
     for name, data in cases.items():
         result = adaptive_sort(data, verbose=True)
         ok     = is_sorted(result) and result == sorted(data)
         if not ok: all_pass = False
-        assert data == data, "Mảng gốc bị thay đổi!"
         print(f"  {name}: {'✓ PASS' if ok else '✗ FAIL'}\n")
-
-    print("=" * 70)
     print("Kết quả:", "✓ Tất cả PASS" if all_pass else "✗ Có lỗi!")
-    print("=" * 70)
+    print("=" * 65)
