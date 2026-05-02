@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 generate_datasets.py
-Thành viên : Phạm Quang Tùng – 24070566
-Nhiệm vụ   : Tải dữ liệu gốc từ Kaggle, trích cột price,
+ Tải dữ liệu gốc từ Kaggle, trích cột price,
              tạo 5 tập dữ liệu A–E theo đúng yêu cầu đề tài.
-Môi trường : Google Colab
 """
 
 import pandas as pd
