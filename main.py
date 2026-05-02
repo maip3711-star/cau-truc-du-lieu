@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 tung_test.py
-Thành viên : Phạm Quang Tùng – 24070566
-Nhiệm vụ   : Kiểm thử tính đúng đắn của adaptive_sort so với
+ Kiểm thử tính đúng đắn của adaptive_sort so với
              các thuật toán đơn lẻ trên 5 tập dữ liệu A–E.
-Phụ trách  : Phần 3 báo cáo
-Môi trường : Google Colab
 """
 
 import sys
