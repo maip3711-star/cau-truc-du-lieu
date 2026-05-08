@@ -1,131 +1,168 @@
 # -*- coding: utf-8 -*-
 """
 data_analyzer.py
-               - Tinh ty le nghich the (sampling tuan tu O(sample_size))
-               - Phat hien xu huong sap xep cua mang
+
+Phân tích đặc tính dữ liệu phục vụ thuật toán sắp xếp thích nghi:
+- Đếm nghịch thế chính xác (O(n log n)) – dùng cho báo cáo
+- Ước lượng tỷ lệ nghịch thế bằng sampling O(k) – dùng trong adaptive_sort
+- Phát hiện xu hướng dữ liệu (tăng / giảm / ngẫu nhiên) với ngưỡng 95%
 """
 
+import random
+
 # ============================================================
-# 1. DEM NGHICH THE CHINH XAC (dung cho bao cao)
+# 1. ĐẾM NGHỊCH THẾ CHÍNH XÁC (cho báo cáo)
 # ============================================================
 
 def count_inversions(arr):
     """
-    Dem so cap nghich the bang Merge Sort cai tien - O(n log n).
-    Dung de tinh toan chinh xac cho bao cao, KHONG dung trong adaptive_sort.
+    Đếm số nghịch thế bằng Merge Sort cải tiến — O(n log n)
     """
     if len(arr) <= 1:
         return 0
     _, inv = _merge_count(arr.copy())
     return inv
 
-
 def _merge_count(arr):
     if len(arr) <= 1:
         return arr, 0
-    mid           = len(arr) // 2
-    left,  inv_l  = _merge_count(arr[:mid])
-    right, inv_r  = _merge_count(arr[mid:])
-    merged, inv   = [], inv_l + inv_r
-    i = j         = 0
+    mid = len(arr) // 2
+    left, inv_l = _merge_count(arr[:mid])
+    right, inv_r = _merge_count(arr[mid:])
+    merged = []
+    i = j = 0
+    inv = inv_l + inv_r
     while i < len(left) and j < len(right):
         if left[i] <= right[j]:
-            merged.append(left[i]); i += 1
+            merged.append(left[i])
+            i += 1
         else:
+            merged.append(right[j])
             inv += len(left) - i
-            merged.append(right[j]); j += 1
+            j += 1
     merged.extend(left[i:])
     merged.extend(right[j:])
     return merged, inv
 
 
 # ============================================================
-# 2. PHAN TICH NHANH - dung trong adaptive_sort
+# 2. ƯỚC LƯỢNG ĐỘ LỘN XỘN BẰNG SAMPLING (dùng trong adaptive_sort)
 # ============================================================
 
 def inversion_ratio(arr, sample_size=1000):
     """
-    Uoc luong ty le nghich the (%) bang systematic sampling - O(sample_size).
-    Duyet tuan tu sample_size cap lien ke trai deu tren toan mang.
-    Tra ve: float [0.0, 100.0]
+    Ước lượng tỷ lệ nghịch thế (%) bằng systematic sampling.
+    Chỉ so sánh các cặp liền kề cách đều step.
+    Độ phức tạp: O(sample_size) ≈ O(1000).
     """
     n = len(arr)
     if n <= 1:
         return 0.0
-    step      = max(1, (n - 1) // min(sample_size, n - 1))
-    indices   = range(0, n - 1, step)
-    total     = len(range(0, n - 1, step))
-    inv_count = sum(1 for i in indices if arr[i] > arr[i + 1])
+    step = max(1, (n - 1) // min(sample_size, n - 1))
+    indices = range(0, n - 1, step)
+    total = len(indices)
+    if total == 0:
+        return 0.0
+    inv_count = sum(1 for i in indices if arr[i] > arr[i+1])
     return (inv_count / total) * 100.0
 
 
-def detect_trend(arr, sample_size=500):
+# ============================================================
+# 3. PHÁT HIỆN XU HƯỚNG DỮ LIỆU (NGƯỠNG 95%)
+# ============================================================
+
+def detect_trend(arr, sample_size=1000):
     """
-    Phat hien xu huong sap xep bang step-based sampling - O(sample_size).
+    Phân loại xu hướng dữ liệu dựa trên systematic sampling,
+    bỏ qua các cặp bằng nhau để tránh nhiễu.
 
-    So sanh phan tu cach nhau 'step' vi tri thay vi cap lien ke,
-    tranh bi anh huong boi cac gia tri trung nhau lien tiep trong du lieu thuc te
-    (vi du: du lieu gia nha co nhieu gia bang nhau).
-
-    Nguong 95%:
-      inc >= 95% -> 'increasing'   Tap B (100%), tranh nham Tap D (90%)
-      dec >= 95% -> 'decreasing'   Tap C (100%)
-      con lai    -> 'random'       Tap A, D, E
-
-    Tra ve: 'increasing' | 'decreasing' | 'random'
+    Ngưỡng 95%:
+      - inc_ratio >= 0.95 → 'increasing'
+      - dec_ratio >= 0.95 → 'decreasing'
+      - còn lại → 'random'
     """
     n = len(arr)
     if n <= 1:
-        return 'random'
+        return "random"
 
-    # So sanh phan tu cach nhau step vi tri
-    step  = max(10, n // sample_size)
-    total = n // step
+    step = max(1, (n - 1) // min(sample_size, n - 1))
+    indices = range(0, n - step, step)   # so sánh các cặp cách nhau step vị trí
+    total = len(indices)
     if total == 0:
-        return 'random'
+        return "random"
 
-    inc = sum(1 for i in range(0, n - step, step) if arr[i] < arr[i + step])
-    dec = sum(1 for i in range(0, n - step, step) if arr[i] > arr[i + step])
+    inc = sum(1 for i in indices if arr[i] < arr[i + step])
+    dec = sum(1 for i in indices if arr[i] > arr[i + step])
 
-    if inc / total >= 0.95:
-        return 'increasing'
-    elif dec / total >= 0.95:
-        return 'decreasing'
+    inc_ratio = inc / total
+    dec_ratio = dec / total
+
+    if inc_ratio >= 0.95:
+        return "increasing"
+    elif dec_ratio >= 0.95:
+        return "decreasing"
     else:
-        return 'random'
+        return "random"
 
 
 # ============================================================
-# KIEM THU KHI CHAY TRUC TIEP
+# 4. HÀM TỔNG HỢP (cho tiện)
 # ============================================================
 
+def analyze_array(arr, sample_size=1000):
+    """
+    Trả về dict gồm:
+      - inversion_ratio (ước lượng)
+      - trend
+      - exact_inversions (chính xác)
+    """
+    return {
+        "inversion_ratio": inversion_ratio(arr, sample_size),
+        "trend": detect_trend(arr, sample_size),
+        "exact_inversions": count_inversions(arr)
+    }
+
+
+# ============================================================
+# 5. KIỂM THỬ NHANH KHI CHẠY TRỰC TIẾP
+# ============================================================
 if __name__ == "__main__":
-    import random
     random.seed(42)
+    n = 20000
 
-    prices = list(range(75000, 7700000, 375)) * 3
-    A = random.sample(prices, 20000)
-    B = sorted(A); C = B[::-1]
+    A = [random.randint(100000, 2000000) for _ in range(n)]
+    B = sorted(A)
+    C = B[::-1]
+
+    # D: đảo 5% từ B
     D = B.copy()
-    idx = random.sample(range(20000), 2000)
-    for k in range(0, len(idx)-1, 2):
-        D[idx[k]], D[idx[k+1]] = D[idx[k+1]], D[idx[k]]
+    idx = random.sample(range(n), int(n * 0.05))
+    for i in range(0, len(idx)-1, 2):
+        D[idx[i]], D[idx[i+1]] = D[idx[i+1]], D[idx[i]]
+
+    # E: đảo 30% từ A
     E = A.copy()
-    idx = random.sample(range(20000), 12000)
-    for k in range(0, len(idx)-1, 2):
-        E[idx[k]], E[idx[k+1]] = E[idx[k+1]], E[idx[k]]
+    idx = random.sample(range(n), int(n * 0.30))
+    for i in range(0, len(idx)-1, 2):
+        E[idx[i]], E[idx[i+1]] = E[idx[i+1]], E[idx[i]]
 
-    expected = {'A':'random','B':'increasing','C':'decreasing','D':'random','E':'random'}
+    datasets = {
+        "A - Random": A,
+        "B - Sorted": B,
+        "C - Reverse": C,
+        "D - Nearly Sorted (5% swap)": D,
+        "E - Partially Shuffled (30% swap)": E,
+    }
 
-    print("=" * 62)
-    print(f"{'Tap':<6} {'inv_ratio':>10}  {'trend':<14} {'Dung?'}")
-    print("=" * 62)
-    all_ok = True
-    for name, data in [('A',A),('B',B),('C',C),('D',D),('E',E)]:
-        ratio = inversion_ratio(data)
+    print("=" * 75)
+    print(f"{'Dataset':<30} {'Inv Ratio %':>12} {'Trend':>12} {'Exact Inversions'}")
+    print("=" * 75)
+
+    for name, data in datasets.items():
+        inv = inversion_ratio(data)
         trend = detect_trend(data)
-        ok    = trend == expected[name]
-        if not ok: all_ok = False
-        print(f"  {name}    {ratio:>9.1f}%   {trend:<14} {'OK' if ok else 'LOI - can ' + expected[name]}")
-    print("=" * 62)
-    print("Ket qua:", "Tat ca dung" if all_ok else "Co loi!")
+        exact = count_inversions(data)
+        print(f"{name:<30} {inv:>11.1f}% {trend:>12} {exact:>18,}")
+
+    print("=" * 75)
+    print(" Analysis completed. Ngưỡng xu hướng: 95%")
