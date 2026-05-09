@@ -52,12 +52,6 @@ def adaptive_sort(arr, verbose=False):
                   f"(inv={inv_ratio:.2f}%, trend={trend})")
         return quick_sort(arr)
 
-import time
-t0 = time.perf_counter()
-result = adaptive_sort(data)
-ms = (time.perf_counter() - t0)*1000
-print(f"{name}: {ms:.1f}ms ")
-
 # ============================================================
 # KIỂM THỬ KHI CHẠY TRỰC TIẾP
 # ============================================================
