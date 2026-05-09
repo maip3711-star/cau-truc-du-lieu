@@ -52,49 +52,70 @@ def adaptive_sort(arr, verbose=False):
                   f"(inv={inv_ratio:.2f}%, trend={trend})")
         return quick_sort(arr)
 
-
-# ============================================================
-# KIỂM THỬ KHI CHẠY TRỰC TIẾP
-# ============================================================
 import time
 t0 = time.perf_counter()
 result = adaptive_sort(data)
 ms = (time.perf_counter() - t0)*1000
 print(f"{name}: {ms:.1f}ms ")
 
+# ============================================================
+# KIỂM THỬ KHI CHẠY TRỰC TIẾP
+# ============================================================
+
 if __name__ == "__main__":
     import random
+    import time
     from sort_algorithms import is_sorted
 
     random.seed(42)
-    n   = 20000
-    A   = [random.randint(100000, 2000000) for _ in range(n)]
-    B   = sorted(A); C = B[::-1]
-    D   = B.copy()
+
+    n = 20000
+
+    A = [random.randint(100000, 2000000) for _ in range(n)]
+
+    B = sorted(A)
+    C = B[::-1]
+
+    D = B.copy()
     idx = random.sample(range(n), 2000)
+
     for k in range(0, len(idx)-1, 2):
         D[idx[k]], D[idx[k+1]] = D[idx[k+1]], D[idx[k]]
-    E   = A.copy()
+
+    E = A.copy()
     idx = random.sample(range(n), 12000)
+
     for k in range(0, len(idx)-1, 2):
         E[idx[k]], E[idx[k+1]] = E[idx[k+1]], E[idx[k]]
 
     cases = {
         "A – Ngẫu nhiên": A,
-        "B – Tăng dần  ": B,
-        "C – Giảm dần  ": C,
-        "D – 5%  đảo   ": D,
-        "E – 30% đảo   ": E,
+        "B – Tăng dần": B,
+        "C – Giảm dần": C,
+        "D – 5% đảo": D,
+        "E – 30% đảo": E,
     }
 
     print("=" * 65)
     print("KIỂM THỬ adaptive_sort")
     print("=" * 65)
+
     all_pass = True
+
     for name, data in cases.items():
+
+        t0 = time.perf_counter()
+
         result = adaptive_sort(data, verbose=True)
-        ok     = is_sorted(result) and result == sorted(data)
-        if not ok: all_pass = False
-        print(f"  {name}: {' PASS' if ok else ' FAIL'}\n")
-    print("Kết quả:", " Tất cả PASS" if all_pass else " Có lỗi!")
+
+        ms = (time.perf_counter() - t0) * 1000
+
+        ok = is_sorted(result) and result == sorted(data)
+
+        if not ok:
+            all_pass = False
+
+        print(f"{name}: {ms:.2f} ms → {'PASS' if ok else 'FAIL'}\n")
+
+    print("Kết quả:", "Tất cả PASS" if all_pass else "Có lỗi!")
     print("=" * 65)
