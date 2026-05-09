@@ -4,7 +4,8 @@ adaptive_sort.py
  Xây dựng bộ điều phối thích nghi adaptive_sort()
              dựa vào tỷ lệ nghịch thế và xu hướng dữ liệu.
 """
-
+import sys
+sys.path.append(r"C:\Users\TDG\Downloads")
 from sort_algorithms import insertion_sort, quick_sort, merge_sort, heap_sort
 from data_analyzer   import inversion_ratio, detect_trend
 
@@ -55,6 +56,11 @@ def adaptive_sort(arr, verbose=False):
 # ============================================================
 # KIỂM THỬ KHI CHẠY TRỰC TIẾP
 # ============================================================
+import time
+t0 = time.perf_counter()
+result = adaptive_sort(data)
+ms = (time.perf_counter() - t0)*1000
+print(f"{name}: {ms:.1f}ms ")
 
 if __name__ == "__main__":
     import random
@@ -89,6 +95,6 @@ if __name__ == "__main__":
         result = adaptive_sort(data, verbose=True)
         ok     = is_sorted(result) and result == sorted(data)
         if not ok: all_pass = False
-        print(f"  {name}: {'✓ PASS' if ok else '✗ FAIL'}\n")
-    print("Kết quả:", "✓ Tất cả PASS" if all_pass else "✗ Có lỗi!")
+        print(f"  {name}: {' PASS' if ok else ' FAIL'}\n")
+    print("Kết quả:", " Tất cả PASS" if all_pass else " Có lỗi!")
     print("=" * 65)
