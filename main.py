@@ -9,7 +9,10 @@ Mục tiêu:
 
 import sys
 import random
-sys.path.append(r"C:\Users\TDG\Downloads")
+import os
+SCRIPT_DIR = r"C:\Users\TDG\Downloads"
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
 
 from sort_algorithms import (
     insertion_sort,
@@ -72,7 +75,7 @@ def test_correctness(datasets):
         )
 
     print("-" * 75)
-    print("Kết quả:", "✓ TẤT CẢ PASS" if all_pass else "✗ CÓ LỖI")
+    print("Kết quả:", " TẤT CẢ PASS" if all_pass else " CÓ LỖI")
     print()
 
     return all_pass
@@ -108,7 +111,7 @@ def debug_mismatch(datasets):
 
 if __name__ == "__main__":
 
-    CSV_PATH = r"C:\Users\TDG\Downloads\kc_house_data.csv"
+    CSV_PATH = r"C:\Users\TDG\Downloads\mai\kc_house_data.csv"
 
     # ========================================================
     # LOAD DATASETS
