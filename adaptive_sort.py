@@ -5,7 +5,10 @@ adaptive_sort.py
              dựa vào tỷ lệ nghịch thế và xu hướng dữ liệu.
 """
 import sys
-sys.path.append(r"C:\Users\TDG\Downloads")
+import os
+SCRIPT_DIR = r"C:\Users\TDG\Downloads"
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
 from sort_algorithms import insertion_sort, quick_sort, merge_sort, heap_sort
 from data_analyzer   import inversion_ratio, detect_trend
 
