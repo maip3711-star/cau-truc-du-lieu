@@ -37,23 +37,16 @@ def adaptive_sort(arr, verbose=False):
     trend     = detect_trend(arr)
 
     # ── Chọn và gọi thuật toán ───────────────────────────────
-    if trend == 'increasing':
-        if verbose:
-            print(f"  [adaptive_sort] → Insertion Sort "
-                  f"(inv={inv_ratio:.2f}%, trend={trend})")
+    if trend == "increasing" and inv_ratio < 0.05:
+        if verbose: print("→ Insertion Sort (near-sorted)")
         return insertion_sort(arr)
-
-    elif trend == 'decreasing':
-        if verbose:
-            print(f"  [adaptive_sort] → Merge Sort "
-                  f"(inv={inv_ratio:.2f}%, trend={trend})")
+    elif trend == "decreasing":
+        if verbose: print("→ Merge Sort (reverse)")
         return merge_sort(arr)
-
-    else:
-        if verbose:
-            print(f"  [adaptive_sort] → Quick Sort "
-                  f"(inv={inv_ratio:.2f}%, trend={trend})")
-        return quick_sort(arr)
+    else:  # Random/medium disorder → QuickSort WIN!
+        if verbose: print("→ Quick Sort (random/medium)")
+        return quick_sort(arr) 
+    
 
 # ============================================================
 # KIỂM THỬ KHI CHẠY TRỰC TIẾP
